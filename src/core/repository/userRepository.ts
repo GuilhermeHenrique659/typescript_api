@@ -34,9 +34,8 @@ export default class UserRepository {
         }
     }
     public async delete(id: number): Promise<any|void>{
-        server.db.manager.delete("User",id).catch(err => {
-            if (err instanceof QueryFailedError)
-                throw new RepositoryError("user dont found")
-        })
+        let del = await server.db.manager.delete("User",{id:id})
+        if(del.affected === 0)
+            throw new RepositoryError("User don't deleted because he not found")
     }
 }

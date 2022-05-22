@@ -1,8 +1,8 @@
 import { json, Request, response, Response } from "express";
-import { auth } from "../authentication";
 import User from "../core/entity/User";
 import repositorys from "../core/repository/repositoryFactory";
 import { RepositoryError } from "../core/repository/userRepository";
+import authentication from "../authentication";
 
 export default class UserController {
     public async create(req: Request, res: Response): Promise<Response> {
@@ -26,7 +26,6 @@ export default class UserController {
             list_of_user.forEach(user => {
                 data.push(user.change_for_json())
             })
-            auth.teste()
             return res.json(data)
         } catch (error) {
             return res.json({ "message": "erro in find users" })
@@ -41,16 +40,22 @@ export default class UserController {
             console.log(user);
             
             if (user.getPassword() === req.body.password){
-                return res.json({ auth: true, token: auth.sing_token(user) })
+                return res.json({ auth: true, token: authentication.sing_token(user) })
             }else{
                 return res.status(401).json({"message":"invalid password"})
             }
         }catch(err){
             if(err instanceof RepositoryError)
-                return res.status(401).json({"message":"user don't found"})
+                return res.status(401).json({"message":err.message})
             else
                 return res.status(401).json({"message":"something is wrong"})
         }
+    }
+
+    public async logout(req: Request, res: Response): Promise<Response> {
+        const token = req.header('x-access-token')
+        authentication.logout(token)
+        return res.json({ auth: false, token: null });
     }
 
 
@@ -58,7 +63,7 @@ export default class UserController {
 
         let id:number = req.body.id
         try{
-            repositorys.getUser().delete(id)
+            await repositorys.getUser().delete(id)
             return res.json({"message":"user deleted with success"})
         }catch(error){
             if(error instanceof RepositoryError)
